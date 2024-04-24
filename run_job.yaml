@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: run-job-seed-all-${data_id}
+spec:
+  template:
+    spec:
+      containers:
+      - name: gpu-container
+        image: gitlab-registry.nrp-nautilus.io/zihaozhou/nautilus_tutorial:jupyterhub
+        command: ["/bin/bash","-c"]
+        args: ["cp -r /Results/if_manipulation/IF_manipulation .;
+            cd IF_manipulation;
+            conda env create -f environment.yml;
+            conda init bash;
+            source activate if;
+            cd imagenet_downstream_multiclass;
+            bash run_machine_nautilus.sh ${data_id} ${eps} ${targeted_K} ${method} 0 ${dataset} ${total_iter} ${data_path};
+            echo All 2 complete"]
+        volumeMounts:
+        - mountPath: /Results
+          name: mia-rw
+        resources:
+          limits:
+            nvidia.com/gpu: "1"
+            memory: "50G"
+            cpu: "4"
+          requests:
+            nvidia.com/gpu: "1"
+            memory: "20G"
+            cpu: "3"
+      restartPolicy: Never
+      volumes:
+        - name: mia-rw
+          persistentVolumeClaim:
+            claimName: mia-rw
